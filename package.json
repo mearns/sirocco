@@ -1,22 +1,29 @@
 {
-  "name": "PROJECT-NAME",
+  "name": "sirocco",
   "version": "0.1.0",
-  "description": "$PROJECT_DESCRIPTION$",
-  "keywords": [],
+  "description": "A node library to assist in deploying cloudformation stacks",
+  "keywords": [
+    "cloudformation",
+    "deploy",
+    "cloud",
+    "cfn",
+    "aws",
+    "amazon"
+  ],
   "author": "Brian Mearns <mearns.b@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mearns/PROJECT-NAME.git"
+    "url": "git+https://github.com/mearns/sirocco.git"
   },
   "bugs": {
-    "url": "https://github.com/mearns/PROJECT-NAME/issues"
+    "url": "https://github.com/mearns/sirocco/issues"
   },
-  "homepage": "https://github.com/mearns/PROJECT-NAME#readme",
+  "homepage": "https://github.com/mearns/sirocco#readme",
   "engines": {
     "node": "^10.9.0"
   },
-  "main": "src/index.js",
+  "main": "src/main.js",
   "files": [
     "src/**/*"
   ],
@@ -54,5 +61,13 @@
     "sinon": "^7.3.2",
     "sinon-chai": "^3.3.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "build-object-better": "^1.0.0",
+    "chalk": "^2.4.2",
+    "git-branch": "^2.0.1",
+    "just-run-it": "^0.2.2",
+    "mkdirp": "^0.5.1",
+    "string-template": "^1.0.0",
+    "yargs": "^13.2.4"
+  }
 }
