@@ -24,6 +24,9 @@
     "node": "^10.9.0"
   },
   "main": "src/main.js",
+  "bin": {
+    "sirocco": "./src/main.js"
+  },
   "files": [
     "src/**/*"
   ],

@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const { addArgs } = require("./cli-helper");
 const { CallerError, ConfigError } = require("./errors");
 const fs = require("fs");

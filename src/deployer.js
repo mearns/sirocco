@@ -244,6 +244,8 @@ class Deployer {
                     this.role,
                     this.execute.bind(this)
                 );
+            } else if (Array.isArray(this.authenticationCommand)) {
+                await this.execute(this.authenticationCommand);
             } else {
                 await this.execute([this.authenticationCommand]);
             }
