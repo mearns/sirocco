@@ -3,6 +3,7 @@ const { CallerError, ConfigError } = require("./errors");
 const fs = require("fs");
 const getDeployerFactory = require("./deployer-factory");
 const chalk = require("chalk");
+const path = require("path");
 
 async function main() {
     const [, , ...argv] = process.argv;
@@ -114,7 +115,7 @@ function loadConfigFile(configPath) {
 
 function loadFileForConfig(configPath) {
     try {
-        return require(configPath);
+        return require(path.resolve(configPath));
     } catch (error) {
         const ce = new ConfigError(
             `An error occurred attempting to load the config file: ${error.message}`
@@ -164,8 +165,8 @@ function runStepsForDeployers(deployers, ...steps) {
     }, Promise.resolve());
 }
 
-function getStacksFromConfig(config) {
-    const stacks = config.stacks || [];
+function getStacksToRunFromConfig(config) {
+    const stacks = config.defaultStacks || [];
     if (Array.isArray(stacks)) {
         return stacks;
     } else if (typeof stacks === "string") {
@@ -177,7 +178,10 @@ function getStacksFromConfig(config) {
 async function runDeploy(args) {
     const { config } = args;
     const createDeployer = await getDeployerFactory(args);
-    const stacks = args.stacks || getStacksFromConfig(config);
+    const stacks =
+        args.stacks.length === 0
+            ? getStacksToRunFromConfig(config)
+            : args.stacks;
     if (stacks.length === 0) {
         throw new CallerError(
             "No stacks specified, and non inferred from config"

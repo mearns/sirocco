@@ -44,6 +44,7 @@ function getOptions() {
         param: {
             describe:
                 'Specify a parameter for your CloudFormation template as "KEY=VALUE". Specify this option multiple times to specify multiple parameters.',
+            alias: "params",
             array: true,
             type: "string",
             requiresArg: true,
@@ -53,6 +54,7 @@ function getOptions() {
             describe:
                 'Specify a tag to apply the CloudFormation stack as "KEY=VALUE". Specify this option multiple times to specify multiple tags.',
             array: true,
+            alias: "tags",
             type: "string",
             requiresArg: true,
             coerce: coerceKeyValueArray,
