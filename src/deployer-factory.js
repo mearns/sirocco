@@ -166,24 +166,33 @@ module.exports = async function getDeployerFactory(args) {
         args,
         config.deployTypes
     );
-    const deployTypeConfig = (config.deployTypes || {})[deployType];
+    const deployTypeConfig = (config.deployTypes || {})[deployType] || {};
     if (config.deployTypes) {
-        if (typeof deployTypeConfig === "undefined") {
+        if (!config.deployTypes.hasOwnProperty(deployType)) {
             throw new CallerError(
                 `No such deploy type defined in config: ${deployType}`
             );
         }
-        if (!checkForValidEnv(deployTypeConfig, env)) {
+        if (!checkForValidEnv(config.deployTypes[deployType], env)) {
             throw new CallerError(
                 `Environment is not valid for specified deploy type: ${env}`
             );
         }
     }
-    const envConfig = (config.envs || {})[env];
+    const globalConfig = config.global || {};
+    const envConfig = (config.envs || {})[env] || {};
+    const params = {
+        ...(globalConfig.params || {}),
+        ...(deployTypeConfig.params || {}),
+        ...(envConfig.params || {}),
+        ...(args.params || {})
+    };
     const finalArgs = {
-        ...(deployTypeConfig || {}),
-        ...(envConfig || {}),
+        ...globalConfig,
+        ...deployTypeConfig,
+        ...envConfig,
         ...args,
+        params,
         env
     };
     return stackName =>

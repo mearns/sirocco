@@ -144,12 +144,12 @@ function createDeployer(args) {
             cfnStackName: args.cfnStackName,
             inputTemplate: args.inputTemplate,
             outputTemplate: args.deployTemplate,
-            stackTags: args.tag,
+            stackTags: args.tags,
             authenticationCommand: args.authCmd,
             capabilities: args.capabilities,
             dryRun: args.dryRun
         },
-        args.param
+        args.params
     );
 }
 

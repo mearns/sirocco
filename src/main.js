@@ -179,9 +179,9 @@ async function runDeploy(args) {
     const { config } = args;
     const createDeployer = await getDeployerFactory(args);
     const stacks =
-        args.stacks.length === 0
-            ? getStacksToRunFromConfig(config)
-            : args.stacks;
+        args.stacks && args.stacks.length > 0
+            ? args.stacks
+            : getStacksToRunFromConfig(config);
     if (stacks.length === 0) {
         throw new CallerError(
             "No stacks specified, and non inferred from config"
