@@ -19,6 +19,12 @@ async function main() {
             type: "string",
             coerce: loadConfigFile
         })
+        .option("validate", {
+            global: true,
+            type: "boolean",
+            default: true,
+            describe: "Whether or not to validate the config file"
+        })
         .option("options", {
             global: true,
             config: true,
@@ -190,7 +196,9 @@ async function runValidate(args) {
 
 async function runDeploy(args) {
     const { config } = args;
-    validateConfig(config);
+    if (args.validate) {
+        validateConfig(config);
+    }
     const createDeployer = await getDeployerFactory(args);
     const stacks =
         args.stacks && args.stacks.length > 0

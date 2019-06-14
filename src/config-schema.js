@@ -4,13 +4,28 @@ const buildObject = require("build-object-better");
 
 const MAGIC_PROP = Symbol("__sirocco_validator_magic__");
 
+class MagicValue {
+    constructor(type, original) {
+        this[MAGIC_PROP] = type;
+        Object.defineProperty(this, "original", {
+            value: original,
+            enumerable: false,
+            writable: false
+        });
+    }
+
+    unwrap() {
+        return this.original;
+    }
+}
+
 const validator = new Validator();
 function coerceFunctions(instance, property) {
     const value = instance[property];
     if (typeof value === "function") {
-        instance[property] = { [MAGIC_PROP]: "function" };
+        instance[property] = new MagicValue("function", value);
     } else if (value instanceof RegExp) {
-        instance[property] = { [MAGIC_PROP]: "regexp" };
+        instance[property] = new MagicValue("regexp", value);
     }
 }
 
@@ -209,11 +224,27 @@ const configSchema = {
     }
 };
 
+function uncoerceMagicValues(config) {
+    if (Array.isArray(config)) {
+        config.forEach((value, idx) => {
+            config[idx] = uncoerceMagicValues(value);
+        });
+    } else if (config instanceof MagicValue) {
+        return config.unwrap();
+    } else if (typeof config === "object") {
+        Object.entries(config).forEach(([key, value]) => {
+            config[key] = uncoerceMagicValues(value);
+        });
+    }
+    return config;
+}
+
 module.exports = {
     validateConfig(config) {
         const { errors } = validator.validate(config, configSchema, {
             preValidateProperty: coerceFunctions.bind(validator)
         });
+        uncoerceMagicValues(config);
         if (errors.length) {
             const ce = new CallerError(
                 "One or more validation errors were detected in the given config file:\n" +
