@@ -138,8 +138,9 @@ class Deployer {
      * @param {String|function|null} [config.authenticationCommand=null] Specifies the command to use to authenticate to
      * AWS before running aws commands. If a string, it will be executed _as is_: it is *not* a resolvable value. The resolved `role`
      * will be assigned to the `AWS_PROFILE` env var during execution. If a function,
-     * it will be invoked with two argumnts: the resolved value of `role`, and a bound reference to `this.execute`, which can
-     * be used to run arbitrary commands. If null, no authentication will be performed.
+     * it will be invoked with multiple arguments: the targetStack, the envName, and then a dictionary with the following properties:
+     * `dryRun`: a boolean indicating whether or not this is a dry run; `role`: the resolved value of `role`; `execute`: a bound reference
+     * to `this.execute`, which can be used to run arbitrary commands. If null, no authentication will be performed.
      * @param {Array<String>} [config.capabilities=[]] An array of Strings giving the special capabilities that are required by CloudFornation
      * to deploy or update your stack. This is _not_ a resolvable argument. See <https://docs.aws.amazon.com/cli/latest/reference/cloudformation/deploy/index.html>
      * for details.
@@ -241,8 +242,13 @@ class Deployer {
         if (this.authenticationCommand) {
             if (typeof this.authenticationCommand === "function") {
                 await this.authenticationCommand(
-                    this.role,
-                    this.execute.bind(this)
+                    this.targetStack,
+                    this.envName,
+                    {
+                        execute: this.execute.bind(this),
+                        role: this.role,
+                        dryRun: this.dryRun
+                    }
                 );
             } else if (Array.isArray(this.authenticationCommand)) {
                 await this.execute(this.authenticationCommand);
@@ -295,7 +301,7 @@ class Deployer {
     }
 
     async describeOutputs() {
-        const { stdout } = await this.execute(
+        const processOutput = await this.execute(
             [
                 "aws",
                 "cloudformation",
@@ -307,13 +313,19 @@ class Deployer {
                 quiet: true
             }
         );
-        const [{ Outputs: outputs = [] }] = JSON.parse(stdout).Stacks;
-        if (outputs.length) {
-            outputs.forEach(({ OutputKey: key, OutputValue: value }) => {
-                console.log(`${chalk.gray(`${key}:`)} ${chalk.yellow(value)}`);
-            });
-        } else {
-            console.log(`${chalk.gray("<none>")}`);
+        if (!this.dryRun) {
+            const [{ Outputs: outputs = [] }] = JSON.parse(
+                processOutput.stdout
+            ).Stacks;
+            if (outputs.length) {
+                outputs.forEach(({ OutputKey: key, OutputValue: value }) => {
+                    console.log(
+                        `${chalk.gray(`${key}:`)} ${chalk.yellow(value)}`
+                    );
+                });
+            } else {
+                console.log(`${chalk.gray("<none>")}`);
+            }
         }
     }
 

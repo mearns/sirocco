@@ -7,29 +7,36 @@ const getDeployerFactory = require("./deployer-factory");
 const chalk = require("chalk");
 const path = require("path");
 const { validateConfig } = require("./config-schema");
+const yaml = require("js-yaml");
+const yargs = require("yargs");
+const { logNamedValue } = require("./logger");
+
+const promisify = fn => (...args) =>
+    new Promise((resolve, reject) => {
+        fn(...args, (error, result) => {
+            if (error) {
+                reject(error);
+            } else {
+                resolve(result);
+            }
+        });
+    });
+
+const readFile = promisify(fs.readFile);
+const access = promisify(fs.access);
 
 async function main() {
+    const config = await loadConfigFile();
+    const options = config.options || {};
+    delete config.options;
     const [, , ...argv] = process.argv;
-    const yargs = require("yargs");
     const args = yargs
-        .option("config", {
-            global: true,
-            describe: "The path to the config file to load",
-            default: null,
-            type: "string",
-            coerce: loadConfigFile
-        })
+        .config(options)
         .option("validate", {
             global: true,
             type: "boolean",
             default: true,
             describe: "Whether or not to validate the config file"
-        })
-        .option("options", {
-            global: true,
-            config: true,
-            describe:
-                "Path to a JSON file that specifies additional options for the command"
         })
         .option("env-name-env-var", {
             global: true,
@@ -56,13 +63,23 @@ async function main() {
                 "Specify the given deploy type as one that is deployed from a branch"
         })
         .command(
-            "deploy [DEPLOY_TYPE] [STACKS...]",
+            "deploy [DEPLOY-TYPE]",
             "Deploy the specified stacks",
-            _yargs => {
-                addArgs(_yargs, { prepare: true, deploy: true });
-            }
+            addArgsForDeployLikeCommand
         )
-        .command("validate", "Validate a config file", () => {})
+        .command(
+            "teardown [DEPLOY-TYPE]",
+            "Teardown the specified stacks",
+            addArgsForDeployLikeCommand
+        )
+        .command(
+            "describe [DEPLOY-TYPE]",
+            "Get some information about the specified cloudformation stacks",
+            addArgsForDeployLikeCommand
+        )
+        .command("validate", "Validate the chosen config file", _yargs =>
+            _yargs.strict(false)
+        )
         .strict()
         .fail(function(msg, err, yargs) {
             if (err && !(err instanceof CallerError)) {
@@ -71,13 +88,36 @@ async function main() {
             console.error((err && err.message) || msg);
             process.exit(1);
         })
-        .demandCommand(1, 1)
+        .demandCommand(1, 1, "Must specify a command")
+        .check(args => {
+            if (args._.length > 1) {
+                throw new CallerError(
+                    `Unknown positional argument(s): ${args._.slice(1).join(
+                        ", "
+                    )}`
+                );
+            }
+            return true;
+        })
         .parse(argv);
+    // Avoid ambiguous ways to access the same option.
+    Object.keys(args)
+        .filter(propName => /-/.test(propName))
+        .forEach(propName => {
+            delete args[propName];
+        });
+    args.config = config;
     const [command] = args._;
     try {
         switch (command) {
             case "deploy":
                 await runDeploy(args);
+                break;
+            case "teardown":
+                await runTeardown(args);
+                break;
+            case "describe":
+                await runDescribe(args);
                 break;
             case "validate":
                 await runValidate(args);
@@ -96,22 +136,51 @@ async function main() {
     }
 }
 
-function loadConfigFile(configPath) {
+function addArgsForDeployLikeCommand(_yargs) {
+    addArgs(_yargs, { prepare: true, deploy: true });
+    _yargs
+        .option("stack", {
+            alias: "stacks",
+            array: true,
+            type: "string",
+            nargs: 1
+        })
+        .positional("DEPLOY-TYPE", {
+            describe: "The deployment type.",
+            type: "string",
+            nargs: 1
+        })
+        .strict();
+}
+
+async function loadConfigFile() {
+    const configPath = await chooseConfigFilePath();
     if (configPath) {
-        return loadFileForConfig(configPath);
+        return readConfigFromFile(configPath);
     }
-    const tryPaths = [".sirocco.js", ".sirocco.json"];
-    const existingPaths = tryPaths.filter(p => {
-        try {
-            fs.accessSync(p, fs.constants.F_OK);
-        } catch (error) {
-            if (error.syscall === "access" && error.code === "ENOENT") {
-                return false;
+    return {};
+}
+
+async function chooseConfigFilePath() {
+    const tryPaths = [
+        ".sirocco.js",
+        ".sirocco.json",
+        ".sirocco.yml",
+        ".sirocco.yaml"
+    ];
+    const existingPaths = (await Promise.all(
+        tryPaths.map(async potentialPath => {
+            try {
+                await access(potentialPath, fs.constants.F_OK);
+            } catch (error) {
+                if (error.syscall === "access" && error.code === "ENOENT") {
+                    return false;
+                }
+                throw error;
             }
-            throw error;
-        }
-        return true;
-    });
+            return potentialPath;
+        })
+    )).filter(potentialPath => potentialPath !== false);
     if (existingPaths.length > 0) {
         if (existingPaths.length > 1) {
             throw new ConfigError(
@@ -121,13 +190,18 @@ function loadConfigFile(configPath) {
             );
         }
         const [foundPath] = existingPaths;
-        return loadFileForConfig(foundPath);
+        return foundPath;
     }
-    return {};
+    return null;
 }
 
-function loadFileForConfig(configPath) {
+async function readConfigFromFile(configPath) {
     try {
+        if (configPath.endsWith(".yml") || configPath.endsWith("yaml")) {
+            return yaml.safeLoad(await readFile(configPath, "utf8"));
+        } else if (configPath.endsWith(".json")) {
+            return JSON.parse(await readFile(configPath, "utf8"));
+        }
         return require(path.resolve(configPath));
     } catch (error) {
         const ce = new ConfigError(
@@ -158,10 +232,13 @@ function runStepsForDeployers(deployers, ...steps) {
                     if (description) {
                         console.log(
                             chalk.blue(
-                                `Running step "${description}" (${stepIdx +
-                                    1} of ${steps.length}) on stack: ${
+                                `Running step ${chalk.cyanBright(
+                                    description
+                                )} (${stepIdx + 1} of ${
+                                    steps.length
+                                }) on stack: ${chalk.cyanBright(
                                     deployer.targetStack
-                                } (${deployerIdx + 1} / ${deployers.length})`
+                                )} (${deployerIdx + 1} / ${deployers.length})`
                             )
                         );
                     }
@@ -194,24 +271,36 @@ async function runValidate(args) {
     console.log("Config file validated successfully");
 }
 
-async function runDeploy(args) {
+async function getDeployers(args) {
     const { config } = args;
     if (args.validate) {
         validateConfig(config);
     }
     const createDeployer = await getDeployerFactory(args);
-    const stacks =
+    const [stacks, stacksFrom] =
         args.stacks && args.stacks.length > 0
-            ? args.stacks
-            : getStacksToRunFromConfig(config);
+            ? [args.stacks, "from --stack option"]
+            : [
+                  getStacksToRunFromConfig(config),
+                  "from config.defaultStacks file"
+              ];
     if (stacks.length === 0) {
         throw new CallerError(
             "No stacks specified, and non inferred from config"
         );
     }
-    const deployers = stacks.map(createDeployer);
+    logNamedValue("Targeted stacks", stacks.join(", "), stacksFrom);
+    if (args.dryRun) {
+        console.log(
+            chalk.red("This is dry run, no commands will actually be executed")
+        );
+    }
+    return stacks.map(createDeployer);
+}
+
+async function runDeploy(args) {
     await runStepsForDeployers(
-        deployers,
+        await getDeployers(args),
         [
             "prepare",
             async deployer => {
@@ -227,6 +316,27 @@ async function runDeploy(args) {
             }
         ]
     );
+}
+
+async function runTeardown(args) {
+    const deployers = await getDeployers(args);
+    await runStepsForDeployers(deployers.reverse(), [
+        "teardown",
+        async deployer => {
+            await deployer.authenticate();
+            await deployer.teardown();
+        }
+    ]);
+}
+
+async function runDescribe(args) {
+    await runStepsForDeployers(await getDeployers(args), [
+        "get outputs",
+        async deployer => {
+            await deployer.authenticate();
+            await deployer.describeOutputs();
+        }
+    ]);
 }
 
 main();

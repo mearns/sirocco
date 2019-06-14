@@ -65,11 +65,6 @@ function getOptions() {
             type: "string",
             requiresArg: true
         },
-        "target-stack": {
-            describe: "The name of the stack to act on.",
-            type: "string",
-            requiresArg: true
-        },
         role: {
             describe: "The name of the AWS Role to use for authentication.",
             type: "string",
@@ -78,7 +73,8 @@ function getOptions() {
         "dry-run": {
             describe:
                 "Don't actually execute any commands, just echo the generated commands and exit",
-            boolean: true
+            type: "boolean",
+            default: false
         },
         "env-name-param-name": {
             describe:

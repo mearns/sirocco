@@ -14,6 +14,8 @@
 const { createDeployer } = require("./cli-helper");
 const { CallerError, ConfigError } = require("./errors");
 const getGitBranch = require("git-branch");
+const merge = require("lodash.merge");
+const { logNamedValue } = require("./logger");
 
 /**
  * Given command line arguments, determine the deploy type and the specific
@@ -21,21 +23,21 @@ const getGitBranch = require("git-branch");
  *
  * A series of strategies are tried for this:
  *
- * 1. If the `env` and `DEPLOY_TYPE` are both given in the `args`, they are used.
- * 2. If the `env` is given in the `args`, but not the `DEPLOY_TYPE`, the given
+ * 1. If the `env` and `DEPLOY-TYPE` are both given in the `args`, they are used.
+ * 2. If the `env` is given in the `args`, but not the `DEPLOY-TYPE`, the given
  *    environment name is split at the first "-" character and the prefix is used
  *    as the deploy type. If the env has no "-", then the entire thing is used as the deploy type.
  * 3. If the `env` is not given in the `args`, then we look for it in the environment variables,
  *    at the env var named by the `envNameEnvVar` args property. The expected deploy type for
  *    this env is taken as the first prefix when split by the `envNameSeparator`. If the
- *    `DEPLOY_TYPE` arg is given, then it must match the deploy type that was determined
- *    from the env name, or an Error is thrown. If `DEPLOY_TYPE` is not given, the one determined
+ *    `DEPLOY-TYPE` arg is given, then it must match the deploy type that was determined
+ *    from the env name, or an Error is thrown. If `DEPLOY-TYPE` is not given, the one determined
  *    from the env name is used.
- * 4. If the `DEPLOY_TYPE` arg is given _and_ is included in the `branchDeployType` arg: we attempt
+ * 4. If the `DEPLOY-TYPE` arg is given _and_ is included in the `branchDeployType` arg: we attempt
  *    to get the name of the GIT branch in the current directory. If we can find it, then the environment
- *    name is constructed from the `DEPLOY_TYPE` and the branch name, joined with "-". The branch name
+ *    name is constructed from the `DEPLOY-TYPE` and the branch name, joined with "-". The branch name
  *    is converted to all lowercase and any "/" characters are replaced with "-" characters.
- * 5. If the `DEPLOY_TYPE` arg is given and there is a configuration for it in `deployTypes`, and
+ * 5. If the `DEPLOY-TYPE` arg is given and there is a configuration for it in `deployTypes`, and
  *    the configuration for it has exactly one `validEnv` value (either a String, or an Array of length 1),
  *    then that value is used as the env name.
  *
@@ -45,23 +47,17 @@ const getGitBranch = require("git-branch");
  * @param {Object} deployTypes A dictionary of deploy type configurations.
  */
 async function getDeployTypeAndEnv(
-    {
-        env,
-        DEPLOY_TYPE: deployType,
-        envNameEnvVar,
-        envNameSeparator,
-        branchDeployType
-    },
+    { env, deployType, envNameEnvVar, envNameSeparator, branchDeployType },
     deployTypes
 ) {
     // If both are given, just use them.
     if (env && deployType) {
-        return [deployType, env];
+        return [deployType, env, "from DEPLOY-TYPE arg", "from --env option"];
     }
     // env is given, but not deploy type, so the deploy type should be the first part of the env.
     if (env) {
         const [deployType] = env.split("-", 1);
-        return [deployType, env];
+        return [deployType, env, "from environment name", "from --env option"];
     }
     // env name is not given in args, see if it's in the specified environment variable.
     if (process.env[envNameEnvVar]) {
@@ -73,7 +69,12 @@ async function getDeployTypeAndEnv(
                 `Environment name does not match given deploy type: ${ciEnvName}`
             );
         }
-        return [expectedDeployType, envNameParts.join("-")];
+        return [
+            expectedDeployType,
+            envNameParts.join("-"),
+            deployType ? "from DEPLOY-TYPE arg" : "from environment name",
+            `from environment variable (${envNameEnvVar})`
+        ];
     }
     // env name not given, and not in env var. If the deploy type is given and it's listed as a branch
     // deploy type, then we can try to get the env name from the branch name.
@@ -82,7 +83,9 @@ async function getDeployTypeAndEnv(
             const brName = await getGitBranch();
             return [
                 deployType,
-                `${deployType}-${brName.toLowerCase().replace("/", "-")}`
+                `${deployType}-${brName.toLowerCase().replace("/", "-")}`,
+                "from DEPLOY-TYPE arg",
+                "from GIT branch name"
             ];
         } catch (error) {
             throw new Error(
@@ -92,23 +95,37 @@ async function getDeployTypeAndEnv(
     }
     // Still haven't found the env name: if we have the deploy type, and that deploy type only has
     // one valid env name, then use it.
-    if (
-        deployType &&
-        deployTypes &&
-        deployTypes[deployType] &&
-        deployTypes[deployType].validEnvs
-    ) {
-        const validEnvs = deployTypes[deployType].validEnvs;
-        if (Array.isArray(validEnvs) && validEnvs.length === 1) {
-            const [env] = validEnvs;
-            return [deployType, env];
+    if (deployType) {
+        if (
+            deployTypes &&
+            deployTypes[deployType] &&
+            deployTypes[deployType].validEnvs
+        ) {
+            const validEnvs = deployTypes[deployType].validEnvs;
+            if (Array.isArray(validEnvs) && validEnvs.length === 1) {
+                const [env] = validEnvs;
+                return [
+                    deployType,
+                    env,
+                    "from DEPLOY-TYPE arg",
+                    "only one valid env name for deploy type"
+                ];
+            }
+            if (typeof validEnvs === "string") {
+                return [
+                    deployType,
+                    validEnvs,
+                    "from DEPLOY-TYPE arg",
+                    "only one valid env name for deploy type"
+                ];
+            }
         }
-        if (typeof validEnvs === "string") {
-            return [deployType, validEnvs];
-        }
+        throw new CallerError(
+            "Could not autmatically determine environment name from DEPLOY-TYPE. Consider using the --env option"
+        );
     }
     throw new CallerError(
-        "Could not autmatically determine environment name. Consider specifying the DEPLOY_TYPE, or use the --env option"
+        "Could not autmatically determine environment name. Consider specifying the DEPLOY-TYPE, or use the --env option"
     );
 }
 
@@ -162,10 +179,15 @@ function runEnvNameValidator(envNameValidator, env) {
  */
 module.exports = async function getDeployerFactory(args) {
     const config = args.config;
-    const [deployType, env] = await getDeployTypeAndEnv(
-        args,
-        config.deployTypes
-    );
+    const [
+        deployType,
+        env,
+        deployTypeFromWhere,
+        envNameFromWhere
+    ] = await getDeployTypeAndEnv(args, config.deployTypes);
+    logNamedValue("Deploy Type", env, envNameFromWhere);
+    logNamedValue("Target Environment", deployType, deployTypeFromWhere);
+
     const deployTypeConfig = (config.deployTypes || {})[deployType] || {};
     if (config.deployTypes) {
         if (!config.deployTypes.hasOwnProperty(deployType)) {
@@ -181,20 +203,14 @@ module.exports = async function getDeployerFactory(args) {
     }
     const globalConfig = config.global || {};
     const envConfig = (config.envs || {})[env] || {};
-    const params = {
-        ...(globalConfig.params || {}),
-        ...(deployTypeConfig.params || {}),
-        ...(envConfig.params || {}),
-        ...(args.params || {})
-    };
-    const finalArgs = {
-        ...globalConfig,
-        ...deployTypeConfig,
-        ...envConfig,
-        ...args,
-        params,
-        env
-    };
+    const finalArgs = merge(
+        {},
+        globalConfig,
+        deployTypeConfig,
+        envConfig,
+        args,
+        { env }
+    );
     return stackName =>
         createDeployer({ ...finalArgs, targetStack: stackName });
 };

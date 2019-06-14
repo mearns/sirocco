@@ -110,34 +110,11 @@ const deployPrefix = addSchema("/config/deploy-prefix", {
     anyOf: [ref(resolvableType)]
 });
 
-const authCmd = addSchema("/config/auth-command", {
-    title: "Authentication command",
-    anyOf: [
-        ref(isFunction),
-        {
-            type: "string",
-            title: "string command",
-            description: "A command name to execute"
-        },
-        {
-            title: "An array of command-args to execute",
-            type: "array",
-            items: {
-                type: "string ",
-                title: "A string",
-                description: "The command name and arguments"
-            },
-            minItems: 1
-        }
-    ]
-});
-
 const coreArgSetSchema = {
     type: "object",
     properties: {
         deployPrefix: ref(deployPrefix),
         deployBucket: ref(deployBucket),
-        authCmd: ref(authCmd),
         ...buildObject(
             ["inputTemplate", "outputTemplate", "cfnStackName", "role"],
             () => ref(resolvableType)
@@ -181,9 +158,9 @@ const defaultStacksAsArray = addSchema("/config/default-stacks#as-array", {
     items: ref(stackName)
 });
 
-const validEnv = "/config/valid-env";
-addSchema(validEnv, {
-    title: "Valid Env",
+const validEnvs = "/config/valid-envs";
+addSchema(validEnvs, {
+    title: "Valid Envs",
     description: "Specifies how to know if an environment is valid",
     anyOf: [
         { type: "string", title: "A string" },
@@ -192,7 +169,7 @@ addSchema(validEnv, {
         {
             type: "array",
             title: "An array of possible values",
-            items: ref(validEnv)
+            items: ref(validEnvs)
         }
     ]
 });
@@ -212,7 +189,7 @@ const configSchema = {
                 ...coreArgSetSchema,
                 properties: {
                     ...coreArgSetSchema.properties,
-                    validEnv: ref(validEnv)
+                    validEnvs: ref(validEnvs)
                 }
             },
             propertyNames: ref(deployType)
