@@ -4,6 +4,7 @@ const fs = require("fs");
 const getDeployerFactory = require("./deployer-factory");
 const chalk = require("chalk");
 const path = require("path");
+const { validateConfig } = require("./config-schema");
 
 async function main() {
     const [, , ...argv] = process.argv;
@@ -53,12 +54,13 @@ async function main() {
                 addArgs(_yargs, { prepare: true, deploy: true });
             }
         )
+        .command("validate", "Validate a config file", () => {})
         .strict()
         .fail(function(msg, err, yargs) {
             if (err && !(err instanceof CallerError)) {
                 throw err;
             }
-            console.error(msg);
+            console.error((err && err.message) || msg);
             process.exit(1);
         })
         .demandCommand(1, 1)
@@ -69,11 +71,14 @@ async function main() {
             case "deploy":
                 await runDeploy(args);
                 break;
+            case "validate":
+                await runValidate(args);
+                break;
             default:
                 throw new Error(`Unhandled command: ${command}`);
         }
     } catch (error) {
-        if (error instanceof String) {
+        if (error instanceof CallerError) {
             console.error(error.message);
             process.exitCode = 1;
         } else {
@@ -175,8 +180,15 @@ function getStacksToRunFromConfig(config) {
     throw new ConfigError('Invalid value for "stacks" config property.');
 }
 
+async function runValidate(args) {
+    const { config } = args;
+    validateConfig(config);
+    console.log("Config file validated successfully");
+}
+
 async function runDeploy(args) {
     const { config } = args;
+    validateConfig(config);
     const createDeployer = await getDeployerFactory(args);
     const stacks =
         args.stacks && args.stacks.length > 0

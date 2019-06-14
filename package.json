@@ -65,6 +65,7 @@
     "build-object-better": "^1.0.0",
     "chalk": "^2.4.2",
     "git-branch": "^2.0.1",
+    "jsonschema": "^1.2.4",
     "just-run-it": "^0.2.2",
     "mkdirp": "^0.5.1",
     "string-template": "^1.0.0",
