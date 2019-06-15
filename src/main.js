@@ -257,6 +257,7 @@ function runStepsForDeployers(deployers, ...steps) {
                     );
                 })
                 .then(result => {
+                    console.log();
                     outputsByDeployer[deployerIdx].push(result);
                     return result;
                 });
