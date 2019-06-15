@@ -26,6 +26,7 @@ const readFile = promisify(fs.readFile);
 const access = promisify(fs.access);
 
 async function main() {
+    const arg0 = path.basename(process.argv[1]);
     const config = await loadConfigFile();
     const options = config.options || {};
     delete config.options;
@@ -48,7 +49,7 @@ async function main() {
         })
         .option("env-name-separator", {
             global: true,
-            default: "-",
+            default: "/",
             type: "string",
             describe:
                 "The character that delimits various levels of the environment name when loaded from an env var",
@@ -77,6 +78,11 @@ async function main() {
             "Get some information about the specified cloudformation stacks",
             addArgsForDeployLikeCommand
         )
+        .command(
+            "get-events [DEPLOY-TYPE]",
+            "Get a log of cloudwatch events for the specified cloudformation stacks",
+            addArgsForDeployLikeCommand
+        )
         .command("validate", "Validate the chosen config file", _yargs =>
             _yargs.strict(false)
         )
@@ -85,7 +91,7 @@ async function main() {
             if (err && !(err instanceof CallerError)) {
                 throw err;
             }
-            console.error((err && err.message) || msg);
+            console.error(`[${arg0}] ERROR: ${(err && err.message) || msg}`);
             process.exit(1);
         })
         .demandCommand(1, 1, "Must specify a command")
@@ -121,6 +127,9 @@ async function main() {
                 break;
             case "validate":
                 await runValidate(args);
+                break;
+            case "get-events":
+                await runGetEvents(args);
                 break;
             default:
                 throw new Error(`Unhandled command: ${command}`);
@@ -313,6 +322,7 @@ async function runDeploy(args) {
             async deployer => {
                 await deployer.authenticate();
                 await deployer.deploy();
+                await deployer.describeStack();
             }
         ]
     );
@@ -325,6 +335,7 @@ async function runTeardown(args) {
         async deployer => {
             await deployer.authenticate();
             await deployer.teardown();
+            await deployer.waitForDeleted();
         }
     ]);
 }
@@ -334,7 +345,17 @@ async function runDescribe(args) {
         "get outputs",
         async deployer => {
             await deployer.authenticate();
-            await deployer.describeOutputs();
+            await deployer.describeStack();
+        }
+    ]);
+}
+
+async function runGetEvents(args) {
+    await runStepsForDeployers(await getDeployers(args), [
+        "get events",
+        async deployer => {
+            await deployer.authenticate();
+            await deployer.getEvents();
         }
     ]);
 }

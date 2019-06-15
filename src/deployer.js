@@ -16,6 +16,8 @@ const mkdirp = require("mkdirp");
 const chalk = require("chalk");
 const { CallerError } = require("./errors");
 const buildObject = require("build-object-better");
+const { logNamedValue, logPastDate } = require("./logger");
+const url = require("url");
 
 /**
  * The default value that's used for the CFN stack name. The default value
@@ -194,6 +196,21 @@ class Deployer {
         this.deployBucket = localResolve(deployBucket);
         this.deployBucketPrefix = localResolve(deployBucketPrefix);
         this.role = localResolve(role);
+        [
+            "inputTemplate",
+            "outputTemplate",
+            "cfnStackName",
+            "deployBucket",
+            "deployBucketPrefix",
+            "role"
+        ].forEach(propName => {
+            const value = this[propName];
+            if (value == null || value.length === 0) {
+                throw new CallerError(
+                    `Resolved value for ${propName} cannot be empty or null`
+                );
+            }
+        });
         this.capabilities = capabilities;
         this.dryRun = dryRun;
         this.stackTags =
@@ -300,7 +317,45 @@ class Deployer {
         ]);
     }
 
-    async describeOutputs() {
+    async getEvents() {
+        const processOutput = await this.execute(
+            [
+                "aws",
+                "cloudformation",
+                "describe-stack-events",
+                "--stack-name",
+                this.cfnStackName
+            ],
+            {
+                quiet: true
+            }
+        );
+        if (!this.dryRun) {
+            const { StackEvents: events = [] } = JSON.parse(
+                processOutput.stdout
+            );
+            if (events.length) {
+                events.forEach(
+                    ({
+                        Timestamp: time,
+                        LogicalResourceId: logicalResource,
+                        ResourceStatus: status,
+                        ResourceStatusReason: reason
+                    }) => {
+                        console.log(
+                            `${chalk.gray(`${time}`)} (${chalk.yellow(
+                                logicalResource
+                            )}): ${status}${reason ? ` - ${reason}` : ""}`
+                        );
+                    }
+                );
+            } else {
+                console.log(`${chalk.gray("<none>")}`);
+            }
+        }
+    }
+
+    async describeStack() {
         const processOutput = await this.execute(
             [
                 "aws",
@@ -314,17 +369,30 @@ class Deployer {
             }
         );
         if (!this.dryRun) {
-            const [{ Outputs: outputs = [] }] = JSON.parse(
-                processOutput.stdout
-            ).Stacks;
+            const [
+                {
+                    Outputs: outputs = [],
+                    LastUpdatedTime: updateTimeString,
+                    StackStatus: status,
+                    StackStatusReason: reason,
+                    StackId: stackId
+                }
+            ] = JSON.parse(processOutput.stdout).Stacks;
+            const updateTime = updateTimeString && new Date(updateTimeString);
+            logPastDate("Update Time", updateTime);
+            logNamedValue("Status", status, reason);
+            logNamedValue("Stack ID", stackId);
+            logNamedValue(
+                "Console URL",
+                this.getCloudformationConsoleURL(stackId)
+            );
+            logNamedValue("Outputs");
             if (outputs.length) {
                 outputs.forEach(({ OutputKey: key, OutputValue: value }) => {
-                    console.log(
-                        `${chalk.gray(`${key}:`)} ${chalk.yellow(value)}`
-                    );
+                    logNamedValue(key, value, null, "    ");
                 });
             } else {
-                console.log(`${chalk.gray("<none>")}`);
+                console.log(`    ${chalk.gray("<none>")}`);
             }
         }
     }
@@ -337,6 +405,72 @@ class Deployer {
             "--stack-name",
             this.cfnStackName
         ]);
+    }
+
+    getCloudformationConsoleURL(stackArn) {
+        return new url.URL(
+            `https://console.aws.amazon.com/cloudformation/home#/stacks/stackinfo?stackId=${stackArn}`
+        );
+    }
+
+    async waitForDeleted() {
+        const stackData = await this.waitForStatus(
+            status => status !== "DELETE_IN_PROGRESS"
+        );
+        logPastDate("Deletion Time", new Date(stackData.DeletionTime));
+    }
+
+    async waitForStatus(checkCompleted) {
+        return new Promise((resolve, reject) => {
+            let checkCount = 0;
+            let stackId = null;
+            const checkStatus = async () => {
+                try {
+                    const processOutput = await this.execute(
+                        [
+                            "aws",
+                            "cloudformation",
+                            "describe-stacks",
+                            "--stack-name",
+                            stackId || this.cfnStackName
+                        ],
+                        {
+                            quiet: true,
+                            silent: checkCount > 1
+                        }
+                    );
+                    if (this.dryRun) {
+                        resolve();
+                    } else {
+                        const [stack] = JSON.parse(processOutput.stdout).Stacks;
+                        const {
+                            StackStatus: status,
+                            StackStatusReason: reason,
+                            StackId: newStackId
+                        } = stack;
+                        const done = await checkCompleted(status, checkCount);
+                        if (checkCount % 3 === 0 || done) {
+                            logNamedValue("Status", status, reason);
+                        }
+                        stackId = newStackId;
+                        checkCount++;
+                        if (done) {
+                            logNamedValue("Stack ID", stackId);
+                            logNamedValue(
+                                "Console URL",
+                                this.getCloudformationConsoleURL(stackId)
+                            );
+                            resolve(stack);
+                        } else {
+                            setTimeout(checkStatus, 5000);
+                        }
+                    }
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            checkStatus();
+        });
     }
 }
 

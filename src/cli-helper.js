@@ -27,7 +27,7 @@ const CLEAN = "cleanup";
 
 function getOptions() {
     return {
-        bucket: {
+        "deploy-bucket": {
             describe: "The name of the S3 bucket to copy deploy resources to.",
             type: "string",
             requiresArg: true,
@@ -133,7 +133,7 @@ function createDeployer(args) {
         args.targetStack,
         args.env,
         {
-            deployBucket: args.bucket,
+            deployBucket: args.deployBucket,
             deployBucketPrefix: args.deployPrefix,
             role: args.role,
             envNameParamName: args.envNameParamName,
