@@ -11,7 +11,14 @@ parameter values, stack names, etc., based on a simple (and optional) configurat
 file.
 
 The "Quick Start" below is meant as a quick reminder for when you already know how to
-use this package; to actually get started, take a look at [docs/concepts.md](docs/concepts.md).
+use this package; to actually get started, take a look at [Getting Started](docs/getting-started.md).
+
+## Requirements
+
+This requires the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
+be installed and executable from your path.
+
+Currently, only YAML is supported from CloudFormation stack templates.
 
 ## Quick Start
 
@@ -29,7 +36,7 @@ use this package; to actually get started, take a look at [docs/concepts.md](doc
 
 ### Directory Layout
 
-```
+```ASCII
 ./
 └── stacks/
     ├── queue/
