@@ -1,4 +1,4 @@
-# sirocco concepts
+# Concepts
 
 There are three key concepts in sirocco: _stacks_, _environments_, and _deploy types_.
 

@@ -27,7 +27,9 @@ const access = promisify(fs.access);
 
 async function main() {
     const arg0 = path.basename(process.argv[1]);
-    const config = await loadConfigFile();
+    const configFromFile = await loadConfigFile();
+    const hasConfig = configFromFile !== null;
+    const config = configFromFile || {};
     const options = config.options || {};
     delete config.options;
     const [, , ...argv] = process.argv;
@@ -113,6 +115,7 @@ async function main() {
             delete args[propName];
         });
     args.config = config;
+    args.hasConfig = hasConfig;
     const [command] = args._;
     try {
         switch (command) {
@@ -167,7 +170,7 @@ async function loadConfigFile() {
     if (configPath) {
         return readConfigFromFile(configPath);
     }
-    return {};
+    return null;
 }
 
 async function chooseConfigFilePath() {
