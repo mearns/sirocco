@@ -2,6 +2,17 @@
 
 A node command line utility and library to assist in deploying AWS CloudFormation stacks.
 
+Deploying any non-trivial CloudFormation stack requires managing parameter values,
+stack names, tags, etc. When any of this is dynamic, like when deploying to multiple
+environments/stages, sticking these commands in `package.json` isn't very practical.
+
+Sirocco manages one or more stacks across multiple environments, generating commands,
+parameter values, stack names, etc., based on a simple (and optional) configuration
+file.
+
+The "Quick Start" below is meant as a quick reminder for when you already know how to
+use this package; to actually get started, take a look at [docs/concepts.md](docs/concepts.md).
+
 ## Quick Start
 
 ### install
