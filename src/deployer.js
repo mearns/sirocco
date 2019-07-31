@@ -159,6 +159,7 @@ class Deployer {
             deployBucketPrefix = DEFAULT_DEPLOY_BUCKET_PREFIX,
             role = "default",
             envNameParamName = "env",
+            stackNameParamName = "stack",
             cfnStackName = DEFAULT_STACK_NAME_GENERATOR,
             inputTemplate = DEFAULT_INPUT_TEMPLATE,
             outputTemplate = DEFAULT_OUTPUT_TEMPLATE,
@@ -184,6 +185,7 @@ class Deployer {
             resolveValue(value, targetStack, envName, this.parameters);
         this.parameters = {
             [envNameParamName]: this.envName,
+            [stackNameParamName]: this.targetStack,
             ...buildObject(Object.keys(params), paramName =>
                 localResolve(params[paramName])
             )
