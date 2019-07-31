@@ -185,8 +185,8 @@ module.exports = async function getDeployerFactory(args) {
         deployTypeFromWhere,
         envNameFromWhere
     ] = await getDeployTypeAndEnv(args, config.deployTypes);
-    logNamedValue("Deploy Type", env, envNameFromWhere);
-    logNamedValue("Target Environment", deployType, deployTypeFromWhere);
+    logNamedValue("Deploy Type", deployType, deployTypeFromWhere);
+    logNamedValue("Target Environment", env, envNameFromWhere);
 
     const deployTypeConfig = (config.deployTypes || {})[deployType] || {};
     if (config.deployTypes) {
