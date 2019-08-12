@@ -10,6 +10,7 @@ const { validateConfig } = require("./config-schema");
 const yaml = require("js-yaml");
 const yargs = require("yargs");
 const { logNamedValue } = require("./logger");
+const buildObject = require("build-object-better");
 
 const promisify = fn => (...args) =>
     new Promise((resolve, reject) => {
@@ -23,6 +24,7 @@ const promisify = fn => (...args) =>
     });
 
 const readFile = promisify(fs.readFile);
+const writeFile = promisify(fs.writeFile);
 const access = promisify(fs.access);
 
 async function main() {
@@ -64,6 +66,13 @@ async function main() {
             default: ["dev"],
             describe:
                 "Specify the given deploy type as one that is deployed from a branch"
+        })
+        .option("dump", {
+            global: true,
+            type: "boolean",
+            default: false,
+            describe:
+                'Dump JSON description of the resolved deployments to "sirocco.dump.json"'
         })
         .command(
             "deploy [DEPLOY-TYPE]",
@@ -305,10 +314,27 @@ async function getDeployers(args) {
     logNamedValue("Targeted stacks", stacks.join(", "), stacksFrom);
     if (args.dryRun) {
         console.log(
-            chalk.red("This is dry run, no commands will actually be executed")
+            chalk.red(
+                "This is a dry run, no commands will actually be executed"
+            )
         );
     }
-    return stacks.map(createDeployer);
+    const deployments = buildObject(stacks, createDeployer);
+    if (args.dump) {
+        await writeFile(
+            "sirocco.dump.json",
+            JSON.stringify(
+                {
+                    stacks: deployments
+                },
+                null,
+                4
+            ),
+            "utf8"
+        );
+    }
+    // Ensure we have the correct order.
+    return stacks.map(stack => deployments[stack]);
 }
 
 async function runDeploy(args) {

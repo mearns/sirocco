@@ -1,6 +1,6 @@
 {
   "name": "sirocco",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A node library to assist in deploying cloudformation stacks",
   "keywords": [
     "cloudformation",
