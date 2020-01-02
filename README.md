@@ -96,3 +96,63 @@ module.exports = {
     }
 };
 ```
+
+### Dynamic Configuration
+
+Parameters and most of configuration options are resolved dynamically for each stack and environment, so a single
+configuration object can provide dynamic values based on the stack or environment name. The following shows
+some example of dynamic parameters:
+
+```javascript
+module.exports = {
+    global: {
+        params: {
+            constant: "value",
+
+            foo: (stackName, envName, parameters) => {
+                /* derive the value of the "foo" parameter for this stack/env */
+            },
+
+            bar:
+                "The bar parameter value for stack {stack} in the {env} environment",
+
+            baz: "Derived-From-Other-Params-{constant}",
+
+            trot: () => "A parameter value with literal brackets in it: {foo}"
+        }
+    }
+};
+```
+
+As shown, dynamic parameter values can either be functions (as in "foo" and "trot", above) or string templates
+(as in "bar" and "baz").
+
+#### Functions
+
+Functions are invoked with three parameters:
+
+-   The name of the stack being targeted (see below)
+-   The name of the environment
+-   A dictionary of _unresolved_ parameters.
+
+Note that the first argument, the name of the stack, is the _local_ name of the stack (i.e., the name of the stack's
+directory under `stacks/`), _not_ the generated name of the cloudformation stack.
+
+The third argument is a dictionary (a plain object) of the parameters for the stack, _without_ resolving any of
+the parameter values. Thus, e.g., the "foo" property of this dictionary, in the above examples, would be the `foo` function
+itself, _not_ the resulting value.
+
+The dictionary is _first_ populateed with two items: _stack_ and _env_, which are the same as the values passed in for the first
+two arguments. However, you happen to have parameters named "stack" or "env", then these entries will be overwritten in the dictionary
+with the (unresolved) parameter values.
+
+#### String Templates
+
+String values are assumed to be [string-templates](https://www.npmjs.com/package/string-template) which use curly braces
+to denote place holders to be replaced. These templates are resolved with the same dictionary that is passed as the third
+argument to function values (described above), which is the unresolved parameter values with the added default properties
+of _stack_ and _env_.
+
+If your parameter value has literal pairs of curly braces that you want to include in the value, you can escape them by
+doubling the braces. You can also make it unambiguous by defining the value as a function which returns the string value you
+want: returned value are _never_ treated as string-templates.

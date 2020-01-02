@@ -69,7 +69,7 @@ const DEFAULT_DEPLOY_BUCKET_PREFIX = (targetStack, envName) => {
  *
  * A String
  * will be formatted using string-templates with a dictionary of values described
- * below. E.g., the value `"{{stack}}-xyz"` will result in the name of the targetStack,
+ * below. E.g., the value `"{stack}-xyz"` will result in the name of the targetStack,
  * followed by a suffix of "-xyz".
  *
  * A function will be invoked with three values: the name of the stack (the local short name, i.e., the "target stack",
