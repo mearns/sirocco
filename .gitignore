@@ -1,4 +1,5 @@
 builds/
+build/
 test-sirocco.js
 
 # Logs
