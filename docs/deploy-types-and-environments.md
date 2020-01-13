@@ -1,14 +1,14 @@
 # Deploy Types and Environments
 
-Deploy Types and Environments are meant to form a heirarchy of your deploy targets, with Deploy Types
+Deploy Types and Environments are meant to form a hierarchy of your deploy targets, with Deploy Types
 at the higher level. A Deploy Type is a class of Environments. For instance, you might have
 multiple development Environments, each with different names, and put them all under the "dev"
 Deploy Type. You might also have multiple production Environments (e.g., in different cloud regions),
 but classify them all as part of the "prod" Deploy Type.
 
 The recommended pattern is to define Deploy Types _first_, and then refine as needed by defining specific
-Environment within those Deploy Types. All of the common configuration for all the environments of that Type
-are specified on the Deploy Type, and then you can override these for specific Environments if you need to.
+Environment within those Deploy Types. All of the common configuration for all the Environments of that Type
+is specified on the Deploy Type, and then you can override these for specific Environments if you need to.
 Often, you'll find you don't even need to define the Environments if they can all share the same configuration.
 In particular, when you use _dynamic configuration_ (see the relevant section of the [REAMDE](../README.md)), you
 can have shared configuration functions that compute configuration values based on the environment name (among
@@ -62,4 +62,5 @@ specify additional information on the command line.
 4. Currently only git is supported for determining branch names; it is taken from the repository of your current working
    directory by [git-branch](https://www.npmjs.com/package/git-branch).
 5. The specified Deploy Type must be defined in your sirocco configuration, and it must have a `validEnvs` property defined which
-   is either a string value or an array containing exactly a single string value.
+   is either a string value or an array containing exactly a single string value. E.g., we're not going to look at a RegExp and try
+   to determine if there is only a single possible value that it allows.
