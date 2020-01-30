@@ -97,6 +97,12 @@ module.exports = {
 };
 ```
 
+### Async Configuration Module
+
+If your config file exports a function, instead of an object, it will be invoked without any arguments
+and treated as an `async` function. This allows your config module to do asynchronous things like read
+from file before returning the actual sirocco config object.
+
 ### Dynamic Configuration
 
 Parameters and most of configuration options are resolved dynamically for each stack and environment, so a single

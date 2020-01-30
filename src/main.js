@@ -223,7 +223,11 @@ async function readConfigFromFile(configPath) {
         } else if (configPath.endsWith(".json")) {
             return JSON.parse(await readFile(configPath, "utf8"));
         }
-        return require(path.resolve(configPath));
+        const mod = require(path.resolve(configPath));
+        if (typeof mod === "function") {
+            return await mod();
+        }
+        return mod;
     } catch (error) {
         const ce = new ConfigError(
             `An error occurred attempting to load the config file: ${error.message}`
