@@ -1,6 +1,63 @@
 # Examples
 
-## Example 1
+## Minimalist Example
+
+```javascript
+module.exports = {
+    defaultStacks: ["app"],
+
+    global: {
+        params: {
+            logLevel: "INFO"
+        }
+    },
+
+    deployTypes: {
+        nonprod: {
+            validEnvs: /nonprod-.*/,
+            deployBucket: "shared-nonprod-deploy-bucket",
+            role: "non-prod-admin",
+            params: {
+                logLevel: "DEBUG"
+            }
+        },
+
+        prod: {
+            validEnvs: /prod-.*/,
+            deployBucket: "shared-prod-deploy-bucket",
+            role: "prod-admin"
+        }
+    }
+};
+```
+
+You could deploy this configuration to a nonprod environment with a command like:
+
+```
+sirocco deploy --env nonprod-01
+```
+
+With this command, sirocco will treat the prefix of the environment name, "nonprod", as the delpoy type.
+
+Or in gitlab-ci, your deploy job might look like:
+
+```yaml
+deploy-to-nonprod-01:
+    stage: nonprod-deploy
+    environment: nonprod/01
+    script:
+        - sirocco deploy
+```
+
+In the latter example, gitlab-ci will automatically set the `CI_ENVIRONMENT_NAME` env var to "nonprod/01" based on
+the configured value for the `environment` property. With no environment or deploy type specifically given on the
+sirocco command line, sirocco will use this environment variable and interpret it as deploy type "nonprod" and
+environment name "nonprod-01". This is all explained in [Deploy Types and Environments](./deploy-types-and-environments.md).
+
+## Detailed Example
+
+The following `.sirocco.js` config illustrates a number of options and common conventions. This project is an npm (NodeJS)
+project, but most of it is not specific to that technology.
 
 ```javascript
 // Sirocco generally needs a deploy bucket in S3 for the aws cli tool to copy deploy resources to (e.g., Lambda code)
