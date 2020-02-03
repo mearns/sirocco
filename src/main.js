@@ -74,6 +74,10 @@ async function main() {
             describe:
                 'Dump JSON description of the resolved deployments to "sirocco.dump.json"'
         })
+        .option("debug", {
+            hidden: true,
+            type: "boolean"
+        })
         .command(
             "deploy [DEPLOY-TYPE]",
             "Deploy the specified stacks",
@@ -147,12 +151,17 @@ async function main() {
                 throw new Error(`Unhandled command: ${command}`);
         }
     } catch (error) {
-        if (error instanceof CallerError) {
-            console.error(error.message);
-            process.exitCode = 1;
+        if (args.debug) {
+            console.error(error);
+            process.exitCode = -3;
         } else {
-            console.error(error.stack);
-            process.exitCode = -2;
+            if (error instanceof CallerError) {
+                console.error(error.message);
+                process.exitCode = 1;
+            } else {
+                console.error(error.stack);
+                process.exitCode = -2;
+            }
         }
     }
 }

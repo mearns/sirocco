@@ -245,11 +245,14 @@ class Deployer {
             });
             return result;
         } catch (error) {
-            const errorMessage = `${
-                options.quiet ? `${error.stderr}\n\n` : ""
-            }${error.message}`;
+            const errorMessage = `An error occurred running a ${
+                command[0]
+            } command: ${options.quiet ? `${error.stderr}\n\n` : ""}${
+                error.message
+            }`;
             const ce = new CallerError(errorMessage);
             ce.stack = error.stack;
+            ce.command = command;
             throw ce;
         }
     }
