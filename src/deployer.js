@@ -113,7 +113,7 @@ class Deployer {
      * @param {String} targetStack The local name of the stack to deploy.
      * @param {String} envName The name of the target deploy environment.
      * @param {Object} config Configuration values for the deployer.
-     * @param {String} config.deployBucket The name of the S3 bucket to which deploy artifacts will be copied.
+     * @param {resolvable} config.deployBucket The name of the S3 bucket to which deploy artifacts will be copied.
      *  This bucket must already exist.
      * @param {resolvable} [config.deployBucketPrefix] The prefix ("directory") to use for deploy artifacts that
      *  are copied to the deployBucket in S3. This doesn't need to already exist in the bucket, it will be "created"
