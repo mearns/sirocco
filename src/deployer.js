@@ -402,6 +402,17 @@ class Deployer {
         }
     }
 
+    printParams() {
+        logNamedValue("Params");
+        if (Object.keys(this.parameters).length) {
+            Object.entries(this.parameters).forEach(([name, value]) => {
+                logNamedValue(name, value, null, "    ");
+            });
+        } else {
+            console.log(`    ${chalk.gray("<none>")}`);
+        }
+    }
+
     async teardown() {
         await this.execute([
             "aws",

@@ -89,6 +89,11 @@ async function main() {
             addArgsForDeployLikeCommand
         )
         .command(
+            "preview [DEPLOY-TYPE]",
+            "Show the parameters values that would be used for the deploy",
+            addArgsForDeployLikeCommand
+        )
+        .command(
             "describe [DEPLOY-TYPE]",
             "Get some information about the specified cloudformation stacks",
             addArgsForDeployLikeCommand
@@ -137,6 +142,9 @@ async function main() {
                 break;
             case "teardown":
                 await runTeardown(args);
+                break;
+            case "preview":
+                await runPreview(args);
                 break;
             case "describe":
                 await runDescribe(args);
@@ -365,6 +373,7 @@ async function runDeploy(args) {
             async deployer => {
                 await deployer.authenticate();
                 await deployer.deploy();
+                deployer.printParams();
                 await deployer.describeStack();
             }
         ]
@@ -389,6 +398,16 @@ async function runDescribe(args) {
         async deployer => {
             await deployer.authenticate();
             await deployer.describeStack();
+        }
+    ]);
+}
+
+async function runPreview(args) {
+    const deployers = await getDeployers(args);
+    await runStepsForDeployers(deployers.reverse(), [
+        "preview",
+        async deployer => {
+            await deployer.printParams();
         }
     ]);
 }
