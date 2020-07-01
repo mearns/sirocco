@@ -103,6 +103,11 @@ async function main() {
             "Get a log of cloudwatch events for the specified cloudformation stacks",
             addArgsForDeployLikeCommand
         )
+        .command(
+            "find-physical-id [DEPLOY-TYPE]",
+            "Get the physical ID of one or more resource from the specified stack",
+            addArgsForFindPhysicalId
+        )
         .command("validate", "Validate the chosen config file", _yargs =>
             _yargs.strict(false)
         )
@@ -146,6 +151,9 @@ async function main() {
             case "preview":
                 await runPreview(args);
                 break;
+            case "find-physical-id":
+                await runFindPhysicalId(args);
+                break;
             case "describe":
                 await runDescribe(args);
                 break;
@@ -181,6 +189,26 @@ function addArgsForDeployLikeCommand(_yargs) {
             alias: "stacks",
             array: true,
             type: "string",
+            nargs: 1
+        })
+        .positional("DEPLOY-TYPE", {
+            describe: "The deployment type.",
+            type: "string",
+            nargs: 1
+        })
+        .strict();
+}
+
+function addArgsForFindPhysicalId(_yargs) {
+    addArgs(_yargs, { prepare: true, deploy: true });
+    _yargs
+        .option("resource", {
+            alias: "resources",
+            describe:
+                'Which resource do you want to look up. Specify like "<STACK-NAME>.<LOGICAL-ID>[.<LOGICAL-ID>[...]]"',
+            array: true,
+            type: "string",
+            default: [],
             nargs: 1
         })
         .positional("DEPLOY-TYPE", {
@@ -408,6 +436,22 @@ async function runPreview(args) {
         "preview",
         async deployer => {
             await deployer.printParams();
+        }
+    ]);
+}
+
+async function runFindPhysicalId(args) {
+    const resources = args.resources.map(res => res.split("."));
+    args.stacks = [...new Set(resources.map(path => path[0]))];
+    const deployers = await getDeployers(args);
+    await runStepsForDeployers(deployers.reverse(), [
+        "find-physical-id",
+        async deployer => {
+            await deployer.getResourcePhysicalIds(
+                ...resources
+                    .filter(res => res[0] === deployer.targetStack)
+                    .map(res => res.slice(1))
+            );
         }
     ]);
 }

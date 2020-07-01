@@ -360,6 +360,37 @@ class Deployer {
         }
     }
 
+    async getResourcePhysicalIds(...logicalIdPaths) {
+        const allResources = await Promise.all(
+            logicalIdPaths.map(async logicalIds => {
+                let physicalId = this.cfnStackName;
+                let logicalPath = logicalIds.join(".") || "<stack>";
+                while (!this.dryRun && logicalIds.length) {
+                    const logicalId = logicalIds.shift();
+                    const processOutput = await this.execute(
+                        [
+                            "aws",
+                            "cloudformation",
+                            "describe-stack-resource",
+                            "--stack-name",
+                            physicalId,
+                            "--logical-resource-id",
+                            logicalId
+                        ],
+                        { quiet: true }
+                    );
+                    ({ PhysicalResourceId: physicalId } = JSON.parse(
+                        processOutput.stdout
+                    ).StackResourceDetail);
+                }
+                return [logicalPath, physicalId];
+            })
+        );
+        allResources.forEach(([logicalIdPath, physicalId]) => {
+            logNamedValue(logicalIdPath, physicalId, null, "    ");
+        });
+    }
+
     async describeStack() {
         const processOutput = await this.execute(
             [
@@ -403,6 +434,7 @@ class Deployer {
     }
 
     printParams() {
+        logNamedValue("Cloudformation Stack Name", this.cfnStackName);
         logNamedValue("Params");
         if (Object.keys(this.parameters).length) {
             Object.entries(this.parameters).forEach(([name, value]) => {
