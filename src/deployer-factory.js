@@ -15,7 +15,7 @@ const { createDeployer } = require("./cli-helper");
 const { CallerError, ConfigError } = require("./errors");
 const getGitBranch = require("git-branch");
 const merge = require("lodash.merge");
-const { logNamedValue } = require("./logger");
+const { log } = require("./logger");
 
 /**
  * Given command line arguments, determine the deploy type and the specific
@@ -185,8 +185,8 @@ module.exports = async function getDeployerFactory(args) {
         deployTypeFromWhere,
         envNameFromWhere
     ] = await getDeployTypeAndEnv(args, config.deployTypes);
-    logNamedValue("Deploy Type", deployType, deployTypeFromWhere);
-    logNamedValue("Target Environment", env, envNameFromWhere);
+    log("Deploy Type", deployType, deployTypeFromWhere);
+    log("Target Environment", env, envNameFromWhere);
 
     const deployTypeConfig = (config.deployTypes || {})[deployType] || {};
     if (config.deployTypes) {

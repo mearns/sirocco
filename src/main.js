@@ -9,7 +9,7 @@ const path = require("path");
 const { validateConfig } = require("./config-schema");
 const yaml = require("js-yaml");
 const yargs = require("yargs");
-const { logNamedValue } = require("./logger");
+const { log, open, close, jsonLogging, getLog } = require("./logger");
 const buildObject = require("build-object-better");
 
 const promisify = fn => (...args) =>
@@ -66,6 +66,12 @@ async function main() {
             default: ["dev"],
             describe:
                 "Specify the given deploy type as one that is deployed from a branch"
+        })
+        .option("json", {
+            global: true,
+            type: "boolean",
+            default: false,
+            describe: "Generate JSON logs"
         })
         .option("dump", {
             global: true,
@@ -131,6 +137,9 @@ async function main() {
             return true;
         })
         .parse(argv);
+    if (args.json) {
+        jsonLogging(true);
+    }
     // Avoid ambiguous ways to access the same option.
     Object.keys(args)
         .filter(propName => /-/.test(propName))
@@ -165,6 +174,9 @@ async function main() {
                 break;
             default:
                 throw new Error(`Unhandled command: ${command}`);
+        }
+        if (args.json) {
+            console.log(JSON.stringify(getLog(), null, 4));
         }
     } catch (error) {
         if (args.debug) {
@@ -299,26 +311,26 @@ function runStepsForDeployers(deployers, ...steps) {
         return deployers.reduce((p2, deployer, deployerIdx) => {
             return p2
                 .then(() => {
-                    if (description) {
-                        console.log(
-                            chalk.blue(
-                                `Running step ${chalk.cyanBright(
-                                    description
-                                )} (${stepIdx + 1} of ${
-                                    steps.length
-                                }) on stack: ${chalk.cyanBright(
-                                    deployer.targetStack
-                                )} (${deployerIdx + 1} / ${deployers.length})`
-                            )
-                        );
-                    }
+                    open(
+                        `Running step ${description || stepIdx + 1} on stack ${
+                            deployer.targetStack
+                        }`
+                    );
+                    log("Step", description);
+                    log("Step Number", stepIdx + 1);
+                    log("Step Count", steps.length);
+                    log("Stack", deployer.targetStack);
+                    log("Stack Number", deployerIdx + 1);
+                    log("Stack Count", deployers.length);
+                    open("Step Output");
                     return stepFunction(
                         deployer,
                         ...outputsByDeployer[deployerIdx]
                     );
                 })
                 .then(result => {
-                    console.log();
+                    close();
+                    close();
                     outputsByDeployer[deployerIdx].push(result);
                     return result;
                 });
@@ -360,7 +372,7 @@ async function getDeployers(args) {
             "No stacks specified, and non inferred from config"
         );
     }
-    logNamedValue("Targeted stacks", stacks.join(", "), stacksFrom);
+    log("Targeted stacks", stacks.join(", "), stacksFrom);
     if (args.dryRun) {
         console.log(
             chalk.red(
@@ -447,6 +459,7 @@ async function runFindPhysicalId(args) {
     await runStepsForDeployers(deployers.reverse(), [
         "find-physical-id",
         async deployer => {
+            await deployer.authenticate();
             await deployer.getResourcePhysicalIds(
                 ...resources
                     .filter(res => res[0] === deployer.targetStack)

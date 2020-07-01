@@ -16,7 +16,7 @@ const mkdirp = require("mkdirp");
 const chalk = require("chalk");
 const { CallerError } = require("./errors");
 const buildObject = require("build-object-better");
-const { logNamedValue, logPastDate } = require("./logger");
+const { log, open, close, logPastDate } = require("./logger");
 const url = require("url");
 
 /**
@@ -386,9 +386,11 @@ class Deployer {
                 return [logicalPath, physicalId];
             })
         );
+        open("Physical IDs");
         allResources.forEach(([logicalIdPath, physicalId]) => {
-            logNamedValue(logicalIdPath, physicalId, null, "    ");
+            log(logicalIdPath, physicalId);
         });
+        close();
     }
 
     async describeStack() {
@@ -416,33 +418,28 @@ class Deployer {
             ] = JSON.parse(processOutput.stdout).Stacks;
             const updateTime = updateTimeString && new Date(updateTimeString);
             logPastDate("Update Time", updateTime);
-            logNamedValue("Status", status, reason);
-            logNamedValue("Stack ID", stackId);
-            logNamedValue(
-                "Console URL",
-                this.getCloudformationConsoleURL(stackId)
-            );
-            logNamedValue("Outputs");
+            log("Status", status, reason);
+            log("Stack ID", stackId);
+            log("Console URL", this.getCloudformationConsoleURL(stackId));
+            open("Outputs");
             if (outputs.length) {
                 outputs.forEach(({ OutputKey: key, OutputValue: value }) => {
-                    logNamedValue(key, value, null, "    ");
+                    log(key, value);
                 });
-            } else {
-                console.log(`    ${chalk.gray("<none>")}`);
             }
+            close();
         }
     }
 
     printParams() {
-        logNamedValue("Cloudformation Stack Name", this.cfnStackName);
-        logNamedValue("Params");
+        log("Cloudformation Stack Name", this.cfnStackName);
+        open("Params");
         if (Object.keys(this.parameters).length) {
             Object.entries(this.parameters).forEach(([name, value]) => {
-                logNamedValue(name, value, null, "    ");
+                log(name, value);
             });
-        } else {
-            console.log(`    ${chalk.gray("<none>")}`);
         }
+        close();
     }
 
     async teardown() {
@@ -498,13 +495,13 @@ class Deployer {
                         } = stack;
                         const done = await checkCompleted(status, checkCount);
                         if (checkCount % 3 === 0 || done) {
-                            logNamedValue("Status", status, reason);
+                            log("Status", status, reason);
                         }
                         stackId = newStackId;
                         checkCount++;
                         if (done) {
-                            logNamedValue("Stack ID", stackId);
-                            logNamedValue(
+                            log("Stack ID", stackId);
+                            log(
                                 "Console URL",
                                 this.getCloudformationConsoleURL(stackId)
                             );
