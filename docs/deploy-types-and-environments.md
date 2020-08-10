@@ -14,6 +14,30 @@ In particular, when you use _dynamic configuration_ (see the relevant section of
 can have shared configuration functions that compute configuration values based on the environment name (among
 other things).
 
+## ValidEnvs
+
+Deploy types can be configured with an optional parameter valled `validEnvs`. This is used (in all but one case) to
+validate that the specified environment name is allowed for a given deploy type. The only time this doesn't apply
+is when the environment name and the deploy type are both given explicitly on the command line (using the
+`--env` option and the positional argument, respectively). This is described as the "User specified" strategy
+(strategy #1) under the "Naming" section below.
+
+The `validEnvs` property can take on any of the following forms:
+
+-   A single string-typed value indicating the one and only environment name that is valid for this deploy type. Environment
+    names must match exactly (case-sensitive) in order to be considered valid.
+-   A regular expression (e.g., a regexp literal or the results of calling the `RegExp` function). Environment names are
+    [tested](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/test) against the regular
+    expression and are considered valid only if they pass.
+-   A function, which will be invoked with the environment name as the only argument; the environment name is considered valid
+    if and only if the function returns a truthy value.
+-   An array whose elements are _any_ mixture of the above. The environment name is considered valid if any only if it tests
+    as valid against _at least one_ of the elements in the array. Note than an empty array will result in no environment names
+    testing as valid.
+
+If the `validEnvs` property is not specified for a deploy type, then any environment name is considered _valid_ for that deploy
+type.
+
 ## Naming
 
 One of the goals of sirocco is to limit the amount of copy-paste you need to do to configure deploys for different
