@@ -1,6 +1,6 @@
 {
   "name": "sirocco",
-  "version": "0.6.0-cdk",
+  "version": "0.6.0-dev",
   "description": "A node library to assist in deploying cloudformation stacks",
   "keywords": [
     "cloudformation",
@@ -51,31 +51,31 @@
     "eslint": "^5.16.0",
     "eslint-config-prettier": "^4.3.0",
     "eslint-config-standard": "^12.0.0",
-    "eslint-plugin-import": "^2.17.2",
-    "eslint-plugin-node": "^9.0.1",
-    "eslint-plugin-prettier": "^3.1.0",
-    "eslint-plugin-promise": "^4.1.1",
-    "eslint-plugin-standard": "^4.0.0",
-    "husky": "^2.3.0",
-    "mocha": "^7.1.1",
-    "node": "^10.9.0",
+    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-node": "^9.2.0",
+    "eslint-plugin-prettier": "^3.1.4",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "husky": "^2.7.0",
+    "mocha": "^7.2.0",
+    "node": "^10.22.0",
     "nyc": "^14.1.1",
-    "prettier": "^1.17.1",
-    "pretty-quick": "^1.10.0",
-    "sinon": "^7.3.2",
-    "sinon-chai": "^3.3.0"
+    "prettier": "^1.19.1",
+    "pretty-quick": "^1.11.1",
+    "sinon": "^7.5.0",
+    "sinon-chai": "^3.5.0"
   },
   "dependencies": {
-    "build-object-better": "^1.0.2",
+    "build-object-better": "^1.2.3",
     "chalk": "^2.4.2",
     "git-branch": "^2.0.1",
-    "javascript-time-ago": "^2.0.1",
-    "js-yaml": "^3.13.1",
-    "jsonschema": "^1.2.4",
-    "just-run-it": "^0.2.6",
+    "javascript-time-ago": "^2.0.13",
+    "js-yaml": "^3.14.0",
+    "jsonschema": "^1.2.6",
+    "just-run-it": "^0.2.7",
     "lodash.merge": "^4.6.2",
     "mkdirp": "^0.5.1",
     "string-template": "^1.0.0",
-    "yargs": "^13.2.4"
+    "yargs": "^13.3.2"
   }
 }
