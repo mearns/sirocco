@@ -1,0 +1,20 @@
+PreRelease:
+  changes: []
+Releases:
+  - release: 12
+    version: 0.7.0
+    date: 2020-09-01
+    description: >-
+      Fix issue #7, in which if .sirocco.js throws an error on require, or if it exports a function and that function either throws or rejects,
+      an unhandled rejection warning is generated and the command exits, but does not actually fail, so the exit code of the sirocco command will
+      be 0.
+    changes:
+      - type: minor
+        description: Fix handling of failures from a loaded .sirocco.js config module.
+        commits: [2745ac717ea67358295ae23f3b3af6a080bf6514]
+      - type: patch
+        description: Updates several dependencies, including some low-severity audit issues.
+        commits: [89e0649974bc0d4d07a89ecf33f34c3e4fcc407e]
+        securityIssuesAddresses:
+          - link: https://github.com/advisories/GHSA-p6mc-m468-83gw
+            summary: Prototype Pollution in lodash
