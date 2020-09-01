@@ -28,119 +28,122 @@ const writeFile = promisify(fs.writeFile);
 const access = promisify(fs.access);
 
 async function main() {
-    const arg0 = path.basename(process.argv[1]);
-    const configFromFile = await loadConfigFile();
-    const hasConfig = configFromFile !== null;
-    const config = configFromFile || {};
-    const options = config.options || {};
-    delete config.options;
-    const [, , ...argv] = process.argv;
-    const args = yargs
-        .config(options)
-        .option("validate", {
-            global: true,
-            type: "boolean",
-            default: true,
-            describe: "Whether or not to validate the config file"
-        })
-        .option("env-name-env-var", {
-            global: true,
-            default: "CI_ENVIRONMENT_NAME",
-            type: "string",
-            describe:
-                "The name of an environment variable that the environment name can be read from if not specified",
-            hidden: true
-        })
-        .option("env-name-separator", {
-            global: true,
-            default: "/",
-            type: "string",
-            describe:
-                "The character that delimits various levels of the environment name when loaded from an env var",
-            hidden: true
-        })
-        .option("branch-deploy-type", {
-            global: true,
-            array: true,
-            type: "string",
-            default: ["dev"],
-            describe:
-                "Specify the given deploy type as one that is deployed from a branch"
-        })
-        .option("dump", {
-            global: true,
-            type: "boolean",
-            default: false,
-            describe:
-                'Dump JSON description of the resolved deployments to "sirocco.dump.json"'
-        })
-        .option("debug", {
-            hidden: true,
-            type: "boolean"
-        })
-        .command(
-            "deploy [DEPLOY-TYPE]",
-            "Deploy the specified stacks",
-            addArgsForDeployLikeCommand
-        )
-        .command(
-            "teardown [DEPLOY-TYPE]",
-            "Teardown the specified stacks",
-            addArgsForDeployLikeCommand
-        )
-        .command(
-            "preview [DEPLOY-TYPE]",
-            "Show the parameters values that would be used for the deploy",
-            addArgsForDeployLikeCommand
-        )
-        .command(
-            "describe [DEPLOY-TYPE]",
-            "Get some information about the specified cloudformation stacks",
-            addArgsForDeployLikeCommand
-        )
-        .command(
-            "get-events [DEPLOY-TYPE]",
-            "Get a log of cloudwatch events for the specified cloudformation stacks",
-            addArgsForDeployLikeCommand
-        )
-        .command(
-            "find-physical-id [DEPLOY-TYPE]",
-            "Get the physical ID of one or more resource from the specified stack",
-            addArgsForFindPhysicalId
-        )
-        .command("validate", "Validate the chosen config file", _yargs =>
-            _yargs.strict(false)
-        )
-        .strict()
-        .fail(function(msg, err, yargs) {
-            if (err && !(err instanceof CallerError)) {
-                throw err;
-            }
-            console.error(`[${arg0}] ERROR: ${(err && err.message) || msg}`);
-            process.exit(1);
-        })
-        .demandCommand(1, 1, "Must specify a command")
-        .check(args => {
-            if (args._.length > 1) {
-                throw new CallerError(
-                    `Unknown positional argument(s): ${args._.slice(1).join(
-                        ", "
-                    )}`
-                );
-            }
-            return true;
-        })
-        .parse(argv);
-    // Avoid ambiguous ways to access the same option.
-    Object.keys(args)
-        .filter(propName => /-/.test(propName))
-        .forEach(propName => {
-            delete args[propName];
-        });
-    args.config = config;
-    args.hasConfig = hasConfig;
-    const [command] = args._;
+    let args = {};
     try {
+        const arg0 = path.basename(process.argv[1]);
+        const configFromFile = await loadConfigFile();
+        const hasConfig = configFromFile !== null;
+        const config = configFromFile || {};
+        const options = config.options || {};
+        delete config.options;
+        const [, , ...argv] = process.argv;
+        args = yargs
+            .config(options)
+            .option("validate", {
+                global: true,
+                type: "boolean",
+                default: true,
+                describe: "Whether or not to validate the config file"
+            })
+            .option("env-name-env-var", {
+                global: true,
+                default: "CI_ENVIRONMENT_NAME",
+                type: "string",
+                describe:
+                    "The name of an environment variable that the environment name can be read from if not specified",
+                hidden: true
+            })
+            .option("env-name-separator", {
+                global: true,
+                default: "/",
+                type: "string",
+                describe:
+                    "The character that delimits various levels of the environment name when loaded from an env var",
+                hidden: true
+            })
+            .option("branch-deploy-type", {
+                global: true,
+                array: true,
+                type: "string",
+                default: ["dev"],
+                describe:
+                    "Specify the given deploy type as one that is deployed from a branch"
+            })
+            .option("dump", {
+                global: true,
+                type: "boolean",
+                default: false,
+                describe:
+                    'Dump JSON description of the resolved deployments to "sirocco.dump.json"'
+            })
+            .option("debug", {
+                hidden: true,
+                type: "boolean"
+            })
+            .command(
+                "deploy [DEPLOY-TYPE]",
+                "Deploy the specified stacks",
+                addArgsForDeployLikeCommand
+            )
+            .command(
+                "teardown [DEPLOY-TYPE]",
+                "Teardown the specified stacks",
+                addArgsForDeployLikeCommand
+            )
+            .command(
+                "preview [DEPLOY-TYPE]",
+                "Show the parameters values that would be used for the deploy",
+                addArgsForDeployLikeCommand
+            )
+            .command(
+                "describe [DEPLOY-TYPE]",
+                "Get some information about the specified cloudformation stacks",
+                addArgsForDeployLikeCommand
+            )
+            .command(
+                "get-events [DEPLOY-TYPE]",
+                "Get a log of cloudwatch events for the specified cloudformation stacks",
+                addArgsForDeployLikeCommand
+            )
+            .command(
+                "find-physical-id [DEPLOY-TYPE]",
+                "Get the physical ID of one or more resource from the specified stack",
+                addArgsForFindPhysicalId
+            )
+            .command("validate", "Validate the chosen config file", _yargs =>
+                _yargs.strict(false)
+            )
+            .strict()
+            .fail(function(msg, err, yargs) {
+                if (err && !(err instanceof CallerError)) {
+                    throw err;
+                }
+                console.error(
+                    `[${arg0}] ERROR: ${(err && err.message) || msg}`
+                );
+                process.exit(1);
+            })
+            .demandCommand(1, 1, "Must specify a command")
+            .check(args => {
+                if (args._.length > 1) {
+                    throw new CallerError(
+                        `Unknown positional argument(s): ${args._.slice(1).join(
+                            ", "
+                        )}`
+                    );
+                }
+                return true;
+            })
+            .parse(argv);
+        // Avoid ambiguous ways to access the same option.
+        Object.keys(args)
+            .filter(propName => /-/.test(propName))
+            .forEach(propName => {
+                delete args[propName];
+            });
+        args.config = config;
+        args.hasConfig = hasConfig;
+        const [command] = args._;
         switch (command) {
             case "deploy":
                 await runDeploy(args);
@@ -234,19 +237,21 @@ async function chooseConfigFilePath() {
         ".sirocco.yml",
         ".sirocco.yaml"
     ];
-    const existingPaths = (await Promise.all(
-        tryPaths.map(async potentialPath => {
-            try {
-                await access(potentialPath, fs.constants.F_OK);
-            } catch (error) {
-                if (error.syscall === "access" && error.code === "ENOENT") {
-                    return false;
+    const existingPaths = (
+        await Promise.all(
+            tryPaths.map(async potentialPath => {
+                try {
+                    await access(potentialPath, fs.constants.F_OK);
+                } catch (error) {
+                    if (error.syscall === "access" && error.code === "ENOENT") {
+                        return false;
+                    }
+                    throw error;
                 }
-                throw error;
-            }
-            return potentialPath;
-        })
-    )).filter(potentialPath => potentialPath !== false);
+                return potentialPath;
+            })
+        )
+    ).filter(potentialPath => potentialPath !== false);
     if (existingPaths.length > 0) {
         if (existingPaths.length > 1) {
             throw new ConfigError(
@@ -275,8 +280,10 @@ async function readConfigFromFile(configPath) {
         return mod;
     } catch (error) {
         const ce = new ConfigError(
-            `An error occurred attempting to load the config file: ${error.message}`
+            `An error occurred attempting to load the config file: ${error.message ||
+                error}`
         );
+        Object.assign(ce, error);
         ce.stack = error.stack;
         throw ce;
     }
