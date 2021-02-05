@@ -1,6 +1,20 @@
 PreRelease:
   changes: []
 Releases:
+  - release: 13
+    version: 0.7.1
+    date: 2021-02-05
+    description: >-
+      Update some transitive dependenices to address a low-sev audit issue in the "ini" package: https://npmjs.com/advisories/1589
+    changes:
+      - type: patch
+        contributors:
+          - dependabot[bot] <support@github.com>
+        description: Update transitive dependencies for low-sev audit issue in "ini" package.
+        commits: [608d2cb7ddae6d5ef726e8b0dea9054b7c204018]
+        securityIssuesAddresses:
+          - link: https://npmjs.com/advisories/1589
+            summary: Prototype Pollution in ini
   - release: 12
     version: 0.7.0
     date: 2020-09-01
