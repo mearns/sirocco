@@ -1,6 +1,20 @@
 PreRelease:
   changes: []
 Releases:
+  - release: 14
+    version: 0.7.2
+    date: 2021-03-31
+    description: >-
+      Update transitive dependenicy "y18n" to address a high-sev security issue in: https://snyk.io/vuln/SNYK-JS-Y18N-1021887
+    changes:
+      - type: patch
+        contributors:
+          - dependabot[bot] <support@github.com>
+        description: Update transitive dependency for high-sev audit issue in "y18n" package.
+        commits: [b3a4fa7cf601151c4a97d412b0ec942464597686]
+        securityIssuesAddresses:
+          - link: https://snyk.io/vuln/SNYK-JS-Y18N-1021887
+            summary: Prototype Pollution in y18n, used by yargs
   - release: 13
     version: 0.7.1
     date: 2021-02-05
