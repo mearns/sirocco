@@ -1,6 +1,11 @@
 PreRelease:
   changes: []
 Releases:
+  - release: 16
+    version: 0.7.4
+    date: 2021-08-27
+    description: >-
+      Update another dependency and bump engines support to node v16.
   - release: 15
     version: 0.7.3
     date: 2021-08-27
