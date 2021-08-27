@@ -1,6 +1,11 @@
 PreRelease:
   changes: []
 Releases:
+  - release: 15
+    version: 0.7.3
+    date: 2021-08-27
+    description: >-
+      Update some transitive dependencies courtesy of dependabot.
   - release: 14
     version: 0.7.2
     date: 2021-03-31
